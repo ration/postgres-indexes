@@ -27,13 +27,17 @@ INSERT INTO address (
     street,
     house_number,
     staircase,
-    apartment
+    apartment,
+    latitude,
+    longitude
 ) VALUES (
     %(postal_code)s,
     %(street)s,
     %(house_number)s,
     %(staircase)s,
-    %(apartment)s
+    %(apartment)s,
+    %(latitude)s,
+    %(longitude)s
 ) ON CONFLICT DO NOTHING;
 """
 
@@ -48,16 +52,20 @@ with conn.cursor() as cur, open(CSV_FILE, newline='', encoding='utf-8') as csvfi
                     "street": row.get("street"),
                     "house_number": row.get("house_number"),
                     "staircase": None,
-                    "apartment": None
+                    "apartment": None,
+                    "latitude": row.get("latitude_wgs84"),
+                    "longitude": row.get("longitude_wgs84"),
                 }
 
                 cur.execute(INSERT_QUERY, data)
-                conn.commit()
-                print(f"✅ Inserted row {i}")
+                if i % 1000 == 0:
+                    print(f"✅ Inserted {i} rows so far")
+                    conn.commit()
         except Exception as e:
             conn.rollback()
             print(f"❌ Failed to insert row {i}: {e}")
             sys.exit(1)
+        conn.commit()
 
 
 # --- Close connection ---
