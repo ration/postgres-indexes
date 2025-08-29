@@ -60,4 +60,18 @@ STORED;
 CREATE INDEX address_search_idx ON address USING gin (search);
 
 
--- select * from address limit 10;
+-- GIST
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+ALTER TABLE address drop column if exists geom;
+
+ALTER TABLE address
+ADD COLUMN geog geography(Point, 4326)
+GENERATED ALWAYS AS (
+  ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+) STORED;
+
+CREATE INDEX address_geom_gist_idx ON address USING gist (geog);
+
+-- SELECT * from address
