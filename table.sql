@@ -1,29 +1,3 @@
--- CREATE TABLE address (
---     id bigint PRIMARY KEY,
---     street VARCHAR(255) NOT NULL,
---     postal_code VARCHAR(20) NOT NULL,
---     house_number VARCHAR(20),
---     staircase VARCHAR(20),
---     apartment VARCHAR(20)
--- );
--- CREATE UNIQUE INDEX address_pkey ON address USING BTREE(id);
-
-
---DROP TABLE Address;
-
-
--- CREATE TABLE address (
---     id bigint,
---     street VARCHAR(255) NOT NULL,
---     postal_code VARCHAR(20) NOT NULL,
---     house_number VARCHAR(20),
---     staircase VARCHAR(20),
---     apartment VARCHAR(20)
--- );
--- CREATE UNIQUE INDEX address_pkey ON address USING BTREE(id);
-
-
-
 CREATE TABLE address (
     id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     street VARCHAR(255) NOT NULL,
@@ -34,6 +8,8 @@ CREATE TABLE address (
     latitude DOUBLE PRECISION,
     longitude DOUBLE PRECISION
 );
+
+CREATE INDEX idx_street_house ON address USING btree(street, house_number);
 
 
 ALTER TABLE address
@@ -60,6 +36,14 @@ STORED;
 CREATE INDEX address_search_idx ON address USING gin (search);
 
 
+-- Fuzzy search
+
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX address_street_trgm_idx
+ON address
+USING gin (street gin_trgm_ops);
+
 -- GIST
 
 CREATE EXTENSION IF NOT EXISTS postgis;
@@ -67,11 +51,10 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 ALTER TABLE address drop column if exists geom;
 
 ALTER TABLE address
+-- 4326 is the SRID for WGS 84, the standard for GPS coordinates
 ADD COLUMN geog geography(Point, 4326)
 GENERATED ALWAYS AS (
   ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
 ) STORED;
 
 CREATE INDEX address_geom_gist_idx ON address USING gist (geog);
-
--- SELECT * from address
